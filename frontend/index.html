@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local AI Security Log Analyzer | Cultive8 & Agrigen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #121826;
+      --card-border: #1f293d;
+      --card-hover: #192235;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.15);
+      --critical: #ef4444;
+      --critical-bg: rgba(239, 68, 68, 0.12);
+      --high: #f97316;
+      --high-bg: rgba(249, 115, 22, 0.12);
+      --medium: #eab308;
+      --medium-bg: rgba(234, 179, 8, 0.12);
+      --low: #3b82f6;
+      --low-bg: rgba(59, 130, 246, 0.12);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: rgba(18, 24, 38, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 1rem 1.5rem;
+    }
+    .header-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-badge {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.1rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 8px;
+      letter-spacing: -0.5px;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+    .title-group h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .title-group p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .health-bar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: #0f1420;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      border: 1px solid var(--card-border);
+      font-size: 0.8rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+      display: inline-block;
+    }
+    .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-dot.offline { background: var(--critical); box-shadow: 0 0 8px var(--critical); }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed #2a374f;
+      border-radius: 12px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(18, 24, 38, 0.4);
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.04);
+      transform: translateY(-1px);
+    }
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--primary);
+    }
+    .upload-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .upload-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+    .file-input { display: none; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: #0284c7;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #0369a1;
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #273549;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .sample-load-bar {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .sample-link {
+      color: var(--primary);
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    /* Progress Banner */
+    .progress-section {
+      display: none;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .progress-title {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(56, 189, 248, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-track {
+      background: #0f1420;
+      border: 1px solid var(--card-border);
+      border-radius: 9999px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+    .progress-fill {
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* Summary Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .stat-card {
+      background: #0f1420;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      line-height: 1.1;
+    }
+    .stat-card.critical .stat-val { color: var(--critical); }
+    .stat-card.high .stat-val { color: var(--high); }
+    .stat-card.medium .stat-val { color: var(--medium); }
+    .stat-card.low .stat-val { color: var(--low); }
+
+    /* Findings View */
+    .report-section {
+      display: none;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .findings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: #0f1420;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      color: var(--text);
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .search-input {
+      background: #0f1420;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+      min-width: 200px;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Finding Card */
+    .findings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .finding-card {
+      background: #0f1420;
+      border: 1px solid var(--card-border);
+      border-left: 4px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      transition: all 0.2s;
+    }
+    .finding-card:hover {
+      border-color: #2e3e5c;
+    }
+    .finding-card.critical { border-left-color: var(--critical); }
+    .finding-card.high { border-left-color: var(--high); }
+    .finding-card.medium { border-left-color: var(--medium); }
+    .finding-card.low { border-left-color: var(--low); }
+
+    .finding-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .finding-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+    .finding-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: var(--font-mono);
+    }
+    .badge.critical { background: var(--critical-bg); color: var(--critical); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge.high { background: var(--high-bg); color: var(--high); border: 1px solid rgba(249, 115, 22, 0.3); }
+    .badge.medium { background: var(--medium-bg); color: var(--medium); border: 1px solid rgba(234, 179, 8, 0.3); }
+    .badge.low { background: var(--low-bg); color: var(--low); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+    .ip-badge {
+      background: #1e293b;
+      color: var(--primary);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #2d3c52;
+    }
+
+    .finding-field {
+      font-size: 0.875rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .finding-field-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+    .finding-field-val {
+      color: #cbd5e1;
+    }
+
+    .action-box {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 6px;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.85rem;
+      color: #a7f3d0;
+    }
+
+    /* Evidence Box */
+    .evidence-box {
+      background: #090d15;
+      border: 1px solid #1a2233;
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+    .evidence-summary {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .evidence-list {
+      margin-top: 0.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .evidence-item {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      display: flex;
+      align-items: baseline;
+      gap: 0.65rem;
+      padding: 0.25rem 0.4rem;
+      border-radius: 4px;
+      background: #0d121c;
+    }
+    .evidence-line {
+      color: var(--primary);
+      font-weight: 700;
+      min-width: 50px;
+    }
+    .evidence-desc {
+      color: #94a3b8;
+    }
+
+    /* Telemetry Table */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      text-align: left;
+    }
+    th {
+      background: #0f1420;
+      padding: 0.65rem 1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+    }
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid #1a2233;
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Empty state & Alerts */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .alert-error {
+      background: var(--critical-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .alert-warning {
+      background: var(--medium-bg);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      color: #fef08a;
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="logo-badge">C8</div>
+        <div class="title-group">
+          <h1>Local AI Security Log Analyzer</h1>
+          <p>Multi-Chunk Threat Correlation &amp; Offline Inspection</p>
+        </div>
+      </div>
+      <div class="health-bar" id="healthBar">
+        <span class="status-dot" id="healthDot"></span>
+        <span id="healthText">Checking local AI model status...</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- System Error Banner (if Ollama offline) -->
+    <div id="systemAlert" style="display: none;"></div>
+
+    <!-- Upload Card -->
+    <section class="card" id="uploadSection">
+      <div class="upload-zone" id="dropZone">
+        <div class="upload-icon">🛡️</div>
+        <div class="upload-title">Drop your server log file here</div>
+        <div class="upload-desc">Supports .log or .txt files up to 10 MB (processes ~20k tokens via 2,048-token sliding chunks)</div>
+        <input type="file" id="fileInput" class="file-input" accept=".log,.txt">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Select Log File</button>
+      </div>
+      <div class="sample-load-bar">
+        <span>Looking for sample data?</span>
+        <span class="sample-link" id="loadSampleBtn">Load Cultive8_Workspace_Agrigen_Server.log</span>
+      </div>
+
+      <!-- Engineering Architecture Drawer -->
+      <div style="margin-top: 1.5rem; border-top: 1px solid var(--card-border); padding-top: 1rem;">
+        <details style="font-size: 0.85rem; color: var(--text-muted);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 0.4rem; user-select: none;">
+            <span>ℹ️ Architecture &amp; Token Budget Notes</span>
+            <span style="font-size: 0.75rem;">(Click to expand)</span>
+          </summary>
+          <div style="margin-top: 0.85rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; line-height: 1.5;">
+            <div style="background: #0f1420; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--card-border);">
+              <strong style="color: var(--text); display: block; margin-bottom: 0.35rem;">Sliding Window Token Budget</strong>
+              Enforces a strict 2,048-token context ceiling:
+              <ul style="margin-left: 1.2rem; margin-top: 0.25rem; font-size: 0.8rem;">
+                <li>System prompt: ~150 tokens</li>
+                <li>Carried context: ~200 tokens</li>
+                <li>Log chunk data: ~1,298 tokens (~15–20 lines)</li>
+                <li>Model output reserve: ~400 tokens</li>
+              </ul>
+            </div>
+            <div style="background: #0f1420; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--card-border);">
+              <strong style="color: var(--text); display: block; margin-bottom: 0.35rem;">Cross-Chunk Threat Correlation</strong>
+              Carries active attacker state across chunk boundaries. Links early brute-force failures from IP <code>203.0.113.44</code> to late authentication success (line 196) and data export (line 201), escalating to a unified Critical incident.
+            </div>
+            <div style="background: #0f1420; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--card-border);">
+              <strong style="color: var(--text); display: block; margin-bottom: 0.35rem;">Operational Noise Filtering</strong>
+              Distinguishes genuine threats from routine errors: database command timeouts that retry and succeed, upstream supplier 502s, and scheduled release maintenance (lines 134–141) are not falsely reported as attacks.
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Progress Card -->
+    <section class="card progress-section" id="progressSection">
+      <div class="progress-header">
+        <div class="progress-title">
+          <div class="spinner"></div>
+          <span id="progressStatus">Analyzing log entries...</span>
+        </div>
+        <span class="badge" id="progressPctBadge" style="background:#0284c7; color:#fff;">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="metaChunks">Chunk: 0 / 0</span>
+        <span id="metaFindings">Findings detected so far: 0</span>
+        <span id="metaElapsed">Elapsed: 0s</span>
+      </div>
+    </section>
+
+    <!-- Report Section -->
+    <section class="report-section" id="reportSection">
+      <!-- Summary Metrics Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Lines</span>
+          <span class="stat-val" id="statLines">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Chunks Processed</span>
+          <span class="stat-val" id="statChunks">0</span>
+        </div>
+        <div class="stat-card critical">
+          <span class="stat-label">Critical Threats</span>
+          <span class="stat-val" id="statCritical">0</span>
+        </div>
+        <div class="stat-card high">
+          <span class="stat-label">High Severity</span>
+          <span class="stat-val" id="statHigh">0</span>
+        </div>
+        <div class="stat-card medium">
+          <span class="stat-label">Medium Severity</span>
+          <span class="stat-val" id="statMedium">0</span>
+        </div>
+        <div class="stat-card low">
+          <span class="stat-label">Low Severity</span>
+          <span class="stat-val" id="statLow">0</span>
+        </div>
+      </div>
+
+      <!-- Action Bar & Filters -->
+      <div class="card">
+        <div class="findings-header">
+          <div class="filter-bar">
+            <span style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin-right:0.25rem;">Filter:</span>
+            <button class="filter-btn active" data-filter="all">All (<span id="countAll">0</span>)</button>
+            <button class="filter-btn" data-filter="Critical">Critical (<span id="countCritical">0</span>)</button>
+            <button class="filter-btn" data-filter="High">High (<span id="countHigh">0</span>)</button>
+            <button class="filter-btn" data-filter="Medium">Medium (<span id="countMedium">0</span>)</button>
+            <button class="filter-btn" data-filter="Low">Low (<span id="countLow">0</span>)</button>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search IP or attack type...">
+            <button class="btn btn-secondary" id="downloadReportBtn">📥 Download JSON</button>
+            <button class="btn btn-secondary" id="resetBtn">🔄 New Analysis</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Findings List -->
+      <div class="findings-list" id="findingsList"></div>
+
+      <!-- Telemetry Table (Chunk Details) -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h3 style="font-size:0.95rem; font-weight:700;">Chunk Execution Telemetry</h3>
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="telemetrySummary"></span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Chunk #</th>
+                <th>Line Range</th>
+                <th>Duration</th>
+                <th>Findings</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Cultive8 &amp; Agrigen Server Log Threat Assessment &bull; Offline Local Model Analysis &bull; Maximum 2,048 Tokens Context Window
+  </footer>
+
+  <script>
+    // State
+    let currentJobId = null;
+    let sseSource = null;
+    let activeReport = null;
+    let activeFilter = 'all';
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadSection = document.getElementById('uploadSection');
+    const progressSection = document.getElementById('progressSection');
+    const reportSection = document.getElementById('reportSection');
+    const progressFill = document.getElementById('progressFill');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressPctBadge = document.getElementById('progressPctBadge');
+    const metaChunks = document.getElementById('metaChunks');
+    const metaFindings = document.getElementById('metaFindings');
+    const metaElapsed = document.getElementById('metaElapsed');
+    const healthDot = document.getElementById('healthDot');
+    const healthText = document.getElementById('healthText');
+    const systemAlert = document.getElementById('systemAlert');
+    const findingsList = document.getElementById('findingsList');
+    const searchInput = document.getElementById('searchInput');
+    const loadSampleBtn = document.getElementById('loadSampleBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
+
+    // Health check on load
+    async function checkHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        if (data.ollama_connected) {
+          healthDot.className = 'status-dot online';
+          healthText.textContent = `Model ready: ${data.configured_model} (Budget: ${data.token_budget.max_context} tok)`;
+          systemAlert.style.display = 'none';
+        } else {
+          healthDot.className = 'status-dot offline';
+          healthText.textContent = `Ollama disconnected: start 'ollama run ${data.configured_model}'`;
+          systemAlert.className = 'alert alert-warning';
+          systemAlert.innerHTML = `⚠️ <strong>Local Ollama model server is not detected on localhost:11434.</strong> Make sure Ollama is installed and running with <code>ollama pull ${data.configured_model}</code>. The app will automatically connect once Ollama is up.`;
+          systemAlert.style.display = 'flex';
+        }
+      } catch (err) {
+        healthDot.className = 'status-dot offline';
+        healthText.textContent = 'Backend offline or unreachable';
+      }
+    }
+    checkHealth();
+    setInterval(checkHealth, 10000);
+
+    // File Drag & Drop
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+    dropZone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files.length) {
+        handleUpload(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        handleUpload(fileInput.files[0]);
+      }
+    });
+
+    // Upload handling
+    async function handleUpload(file) {
+      if (!file.name.endsWith('.log') && !file.name.endsWith('.txt')) {
+        alert('Please upload a .log or .txt file.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10 MB limit.');
+        return;
+      }
+
+      uploadSection.style.display = 'none';
+      progressSection.style.display = 'block';
+      reportSection.style.display = 'none';
+      progressFill.style.width = '0%';
+      progressPctBadge.textContent = '0%';
+      progressStatus.textContent = `Uploading ${file.name}...`;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Upload failed');
+        }
+        const data = await res.json();
+        currentJobId = data.job_id;
+        startSSE(currentJobId);
+      } catch (err) {
+        alert('Error starting analysis: ' + err.message);
+        uploadSection.style.display = 'block';
+        progressSection.style.display = 'none';
+      }
+    }
+
+    // Load sample log directly from server
+    loadSampleBtn.addEventListener('click', async () => {
+      try {
+        loadSampleBtn.textContent = 'Fetching sample log...';
+        const res = await fetch('/Cultive8_Workspace_Agrigen_Server.log');
+        if (!res.ok) throw new Error('Sample file not served');
+        const blob = await res.blob();
+        const sampleFile = new File([blob], 'Cultive8_Workspace_Agrigen_Server.log', { type: 'text/plain' });
+        handleUpload(sampleFile);
+      } catch (err) {
+        alert('Could not auto-fetch sample file: ' + err.message + '. Please use the upload button to select Cultive8_Workspace_Agrigen_Server.log directly from your folder.');
+        loadSampleBtn.textContent = 'Load Cultive8_Workspace_Agrigen_Server.log';
+      }
+    });
+
+    // Server-Sent Events Stream
+    function startSSE(jobId) {
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource(`/api/status/${jobId}`);
+
+      sseSource.addEventListener('progress', (e) => {
+        const d = JSON.parse(e.data);
+        updateProgress(d);
+      });
+
+      sseSource.addEventListener('complete', (e) => {
+        const d = JSON.parse(e.data);
+        sseSource.close();
+        progressFill.style.width = '100%';
+        progressPctBadge.textContent = '100%';
+        progressStatus.textContent = 'Analysis Complete! Compiling report...';
+        setTimeout(() => {
+          progressSection.style.display = 'none';
+          renderReport(d.report);
+        }, 600);
+      });
+
+      sseSource.addEventListener('error', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          alert('Analysis error: ' + (d.error || 'Server error occurred'));
+        } catch (_) {}
+        sseSource.close();
+      });
+    }
+
+    function updateProgress(data) {
+      progressFill.style.width = `${data.progress_pct}%`;
+      progressPctBadge.textContent = `${data.progress_pct}%`;
+      progressStatus.textContent = `Analyzing chunk ${data.current_chunk} of ${data.total_chunks}...`;
+      metaChunks.textContent = `Chunk: ${data.current_chunk} / ${data.total_chunks}`;
+      metaFindings.textContent = `Findings detected so far: ${data.findings_so_far}`;
+      metaElapsed.textContent = `Elapsed: ${data.elapsed_seconds}s`;
+    }
+
+    // Render Final Report
+    function renderReport(report) {
+      activeReport = report;
+      reportSection.style.display = 'flex';
+
+      // Stats
+      document.getElementById('statLines').textContent = report.summary.total_lines_analyzed.toLocaleString();
+      document.getElementById('statChunks').textContent = report.summary.chunks_processed;
+      document.getElementById('statCritical').textContent = report.summary.severity_counts.Critical || 0;
+      document.getElementById('statHigh').textContent = report.summary.severity_counts.High || 0;
+      document.getElementById('statMedium').textContent = report.summary.severity_counts.Medium || 0;
+      document.getElementById('statLow').textContent = report.summary.severity_counts.Low || 0;
+
+      // Filter Counts
+      document.getElementById('countAll').textContent = report.findings.length;
+      document.getElementById('countCritical').textContent = report.summary.severity_counts.Critical || 0;
+      document.getElementById('countHigh').textContent = report.summary.severity_counts.High || 0;
+      document.getElementById('countMedium').textContent = report.summary.severity_counts.Medium || 0;
+      document.getElementById('countLow').textContent = report.summary.severity_counts.Low || 0;
+
+      // Render Telemetry
+      const tbody = document.getElementById('telemetryTbody');
+      tbody.innerHTML = '';
+      report.chunk_details.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>Chunk ${c.chunk}</td>
+          <td>Lines ${c.lines}</td>
+          <td>${c.duration_ms} ms</td>
+          <td>${c.findings_count} findings</td>
+          <td>${c.success ? '<span style="color:var(--success)">✓ OK</span>' : '<span style="color:var(--critical)">✗ Failed</span>'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('telemetrySummary').textContent = `${report.summary.chunks_succeeded} / ${report.summary.chunks_processed} chunks successful in ${report.summary.analysis_duration_seconds}s`;
+
+      renderFindings();
+    }
+
+    // Render Filtered Findings
+    function renderFindings() {
+      if (!activeReport) return;
+      const q = searchInput.value.toLowerCase().trim();
+
+      const filtered = activeReport.findings.filter(f => {
+        const matchesFilter = (activeFilter === 'all') || (f.severity === activeFilter);
+        const matchesSearch = !q ||
+          f.attack_type.toLowerCase().includes(q) ||
+          f.source_ip.toLowerCase().includes(q) ||
+          f.reason.toLowerCase().includes(q);
+        return matchesFilter && matchesSearch;
+      });
+
+      findingsList.innerHTML = '';
+      if (!filtered.length) {
+        findingsList.innerHTML = `
+          <div class="card" style="text-align:center; padding:2.5rem; color:var(--text-muted);">
+            No security findings match your filter criteria.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(f => {
+        const sevClass = f.severity.toLowerCase();
+        const card = document.createElement('div');
+        card.className = `finding-card ${sevClass}`;
+
+        const evidenceHtml = f.evidence.map(e => `
+          <div class="evidence-item">
+            <span class="evidence-line">[L${e.line}]</span>
+            <span class="evidence-desc">${escapeHtml(e.description || 'Event identified by analyzer')}</span>
+          </div>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="finding-top">
+            <div class="finding-title-group">
+              <span class="badge ${sevClass}">${f.severity}</span>
+              <span class="finding-title">${escapeHtml(f.attack_type)}</span>
+              <span class="ip-badge">IP: ${escapeHtml(f.source_ip)}</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">${f.evidence.length} evidence lines</span>
+          </div>
+
+          <div class="finding-field">
+            <span class="finding-field-label">Reason / Security Impact</span>
+            <span class="finding-field-val">${escapeHtml(f.reason || 'Anomalous request pattern detected matching threat signature.')}</span>
+          </div>
+
+          <div class="action-box">
+            <strong>🛡️ Recommended Action:</strong> ${escapeHtml(f.recommended_action || 'Review and restrict offending IP on perimeter firewall/WAF.')}
+          </div>
+
+          <div class="evidence-box">
+            <details>
+              <summary class="evidence-summary">
+                <span>View Evidence &amp; Line Numbers (${f.evidence.length} entries)</span>
+                <span>▼</span>
+              </summary>
+              <div class="evidence-list">
+                ${evidenceHtml}
+              </div>
+            </details>
+          </div>
+        `;
+        findingsList.appendChild(card);
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Filter Buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        renderFindings();
+      });
+    });
+    searchInput.addEventListener('input', renderFindings);
+
+    // Download Report
+    downloadReportBtn.addEventListener('click', () => {
+      if (!activeReport) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeReport, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `security_report_${activeReport.summary.filename || 'log'}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+
+    // Reset for New Analysis
+    resetBtn.addEventListener('click', () => {
+      activeReport = null;
+      currentJobId = null;
+      if (sseSource) sseSource.close();
+      fileInput.value = '';
+      reportSection.style.display = 'none';
+      progressSection.style.display = 'none';
+      uploadSection.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
+
